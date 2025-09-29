@@ -201,3 +201,15 @@ These should also be captured in `trading_bot/requirement.txt` for reproducibili
 - Update bot by pulling new code and restarting service.
 
 🚀 Happy Trading & Logging!
+
+
+## 6. Anti-spam: auto-delete command messages
+
+To reduce chat clutter, the bot is configured to delete users' command messages (e.g., `/trades_all`, `/trade_list`, etc.) after processing and then post the report as a fresh message.
+
+Requirements and notes:
+- The bot must be an admin in the group with the "Delete messages" permission.
+- Telegram only allows deletion of messages that are not too old (typically within 48 hours).
+- If the bot lacks permission or deletion fails, it will continue processing and simply won’t delete the command message.
+
+No extra configuration is needed—this behavior is built-in for all user-invoked commands.

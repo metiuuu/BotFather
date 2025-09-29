@@ -29,6 +29,18 @@ def safe_handler(func):
                 await update.message.reply_text(f"⚠️ Terjadi error: {e}")
     return wrapper
 
+async def maybe_delete_command(update: Update):
+    """Try to delete the user's command message to reduce chat clutter.
+    Requires the bot to have 'Delete messages' admin permission in groups.
+    Silently ignores failures (e.g., lack of permission or 48h limit).
+    """
+    try:
+        if update and getattr(update, "message", None):
+            await update.message.delete()
+    except Exception as e:
+        # Don't break command flow if deletion fails
+        print(f"⚠️ Could not delete command message: {e}")
+
 def format_amount(amount: float) -> str:
     emoji = "📈" if amount > 0 else "📉" if amount < 0 else "➖"
     return f"{amount:+,.0f} {emoji}"
@@ -74,6 +86,7 @@ def stored_owner_key(update: Update) -> tuple[str, str]:
 @safe_handler
 async def trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Add a trade P/L entry: /trade add SYMBOL AMOUNT"""
+    await maybe_delete_command(update)
     if len(context.args) < 2:
         await update.message.reply_text("Usage: /trade add SYMBOL AMOUNT")
         return
@@ -93,6 +106,7 @@ async def trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def trade_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Edit a trade by ID: /trade edit ID NEW_AMOUNT"""
+    await maybe_delete_command(update)
     if len(context.args) < 2:
         await update.message.reply_text("Usage: /trade edit ID NEW_AMOUNT")
         return
@@ -121,6 +135,7 @@ async def trade_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def trade_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Delete a trade by ID: /trade delete ID"""
+    await maybe_delete_command(update)
     if len(context.args) < 1:
         await update.message.reply_text("Usage: /trade delete ID")
         return
@@ -144,6 +159,7 @@ async def trade_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """List trades with filters:
     /trade list [--user @username|me] [--symbol SYMBOL] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
     """
+    await maybe_delete_command(update)
     f = parse_flags(context.args)
     user_filter = f["--user"]
     symbol_filter = f["--symbol"]
@@ -210,6 +226,7 @@ async def trade_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def trades_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Shortcut: list all trades (no filters)"""
+    await maybe_delete_command(update)
     # Call trade_list with no args
     context.args = []
     await trade_list(update, context)
@@ -218,6 +235,7 @@ async def trades_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Add a position: /pos add SYMBOL QTY AVG_PRICE"""
+    await maybe_delete_command(update)
     if len(context.args) < 3:
         await update.message.reply_text("Usage: /pos add SYMBOL QTY AVG_PRICE")
         return
@@ -241,6 +259,7 @@ async def pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def pos_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Edit a position: /pos edit ID QTY AVG_PRICE"""
+    await maybe_delete_command(update)
     if len(context.args) < 3:
         await update.message.reply_text("Usage: /pos edit ID QTY AVG_PRICE")
         return
@@ -272,6 +291,7 @@ async def pos_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def pos_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Delete a position: /pos delete ID"""
+    await maybe_delete_command(update)
     if len(context.args) < 1:
         await update.message.reply_text("Usage: /pos delete ID")
         return
@@ -295,6 +315,7 @@ async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """List positions:
     /pos list [--user @username|me]
     """
+    await maybe_delete_command(update)
     f = parse_flags(context.args)
     user_filter = f["--user"]
     params = []
@@ -332,6 +353,7 @@ async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def pos_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Group positions with totals and weighted average: /pos all"""
+    await maybe_delete_command(update)
     c.execute("SELECT user, stock, quantity, avg_price FROM positions ORDER BY user")
     rows = c.fetchall()
     if not rows:
@@ -425,6 +447,7 @@ async def recap(update: Update, context: ContextTypes.DEFAULT_TYPE, period: str)
 @safe_handler
 async def recap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/recap daily|weekly|monthly"""
+    await maybe_delete_command(update)
     period = (context.args[0].lower() if context.args else "monthly")
     if period not in ("daily", "weekly", "monthly"):
         await update.message.reply_text("Usage: /recap [daily|weekly|monthly]")
@@ -433,15 +456,18 @@ async def recap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @safe_handler
 async def weekly(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await maybe_delete_command(update)
     await recap(update, context, "weekly")
 
 @safe_handler
 async def monthly(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await maybe_delete_command(update)
     await recap(update, context, "monthly")
 
 # ================ LEADERBOARD =================
 @safe_handler
 async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await maybe_delete_command(update)
     today = datetime.now(JAKARTA_TZ)
     start = today.replace(day=1)
     start_str = start.strftime("%Y-%m-%d")
@@ -464,6 +490,7 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================ STOCK FILTER =================
 @safe_handler
 async def stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await maybe_delete_command(update)
     if not context.args:
         await update.message.reply_text("Usage: /stock SYMBOL")
         return
@@ -495,6 +522,7 @@ async def stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================ MY STATS =================
 @safe_handler
 async def mystats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await maybe_delete_command(update)
     user = update.effective_user.first_name
     today = datetime.now(JAKARTA_TZ)
     start = today.replace(day=1)
@@ -525,6 +553,7 @@ async def mystats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def admin_pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin: /admin pos add USER SYMBOL QTY AVG_PRICE"""
+    await maybe_delete_command(update)
     if not user_is_admin(update):
         await update.message.reply_text("⛔ Only admins can use /admin pos add")
         return
@@ -556,6 +585,7 @@ async def admin_pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @safe_handler
 async def admin_trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin: /admin trade add USER SYMBOL AMOUNT"""
+    await maybe_delete_command(update)
     if not user_is_admin(update):
         await update.message.reply_text("⛔ Only admins can use /admin trade add")
         return
@@ -578,6 +608,7 @@ async def admin_trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
  # ================== MAIN ==================
 @safe_handler
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await maybe_delete_command(update)
     msg = """
 📘 *Panduan Bot Trading*
 
