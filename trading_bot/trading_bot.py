@@ -186,7 +186,18 @@ async def trade_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += f"  ... and {len(items)-50} more\n"
         msg += "\n"
     msg += f"💰 Group Total: {total:+,.0f} {'✅' if total>=0 else '❌'}"
-    await update.message.reply_text(msg)
+    # Split long messages into 4000-char chunks to avoid Telegram limits
+    MAX_LEN = 4000
+    for i in range(0, len(msg), MAX_LEN):
+        await update.message.reply_text(msg[i:i + MAX_LEN])
+
+
+# ================ TRADES ALL SHORTCUT ================
+async def trades_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Shortcut: list all trades (no filters)"""
+    # Call trade_list with no args
+    context.args = []
+    await trade_list(update, context)
 
 # ================ COMMANDS (POSITIONS) ================
 async def pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -544,6 +555,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     `/trade_edit ID JUMLAH_BARU`
     `/trade_delete ID`
     `/trade_list [filter]`
+    `/trades_all` → Daftar semua trade (shortcut)
     Alias: `/pl SAHAM JUMLAH`
     Contoh:
     `/trade_add PSDN +6300000`
@@ -588,6 +600,7 @@ def main():
     app.add_handler(CommandHandler("trade_edit", trade_edit))
     app.add_handler(CommandHandler("trade_delete", trade_delete))
     app.add_handler(CommandHandler("trade_list", trade_list))
+    app.add_handler(CommandHandler("trades_all", trades_all))  # new shortcut
     app.add_handler(CommandHandler("pl", trade_add))  # alias
 
     # POSITIONS
