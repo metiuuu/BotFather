@@ -482,7 +482,7 @@ async def mystats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(msg)
 
-# ============== ADMIN POSADD ==============
+# ============== ADMIN COMMANDS ==============
 async def admin_pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin: /admin pos add USER SYMBOL QTY AVG_PRICE"""
     if not user_is_admin(update):
@@ -511,7 +511,30 @@ async def admin_pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"✅ Added position {stock} Qty: {quantity} Avg Price: {avg_price} for {user}")
 
-# ================== MAIN ==================
+
+# ============== ADMIN TRADE ADD ==============
+async def admin_trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin: /admin trade add USER SYMBOL AMOUNT"""
+    if not user_is_admin(update):
+        await update.message.reply_text("⛔ Only admins can use /admin trade add")
+        return
+    if len(context.args) < 3:
+        await update.message.reply_text("Usage: /admin trade add USER SYMBOL AMOUNT")
+        return
+    user = context.args[0]
+    stock = context.args[1].upper()
+    try:
+        amount = float(context.args[2].replace(",", ""))
+    except ValueError:
+        await update.message.reply_text("Amount must be a number")
+        return
+    date = today_str()
+    c.execute("INSERT INTO logs (user, stock, amount, date) VALUES (?, ?, ?, ?)",
+              (user, stock, amount, date))
+    conn.commit()
+    await update.message.reply_text(f"✅ Added trade {stock} {format_amount(amount)} for {user}")
+
+ # ================== MAIN ==================
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = """
 📘 *Panduan Bot Trading*
@@ -534,8 +557,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     `/pos_all`
     Alias tambah posisi: `/pos SAHAM JUMLAH HARGA_RATA`
 
-    Admin:
+    *Admin:*
     `/admin_pos_add USER SAHAM JUMLAH HARGA_RATA`
+    `/admin_trade_add USER SAHAM JUMLAH`
     
     📊 *Rekap*
     `/recap daily|weekly|monthly`
@@ -573,6 +597,7 @@ def main():
     app.add_handler(CommandHandler("pos_list", pos_list))
     app.add_handler(CommandHandler("pos_all", pos_all))
     app.add_handler(CommandHandler("admin_pos_add", admin_pos_add))
+    app.add_handler(CommandHandler("admin_trade_add", admin_trade_add))
     app.add_handler(CommandHandler("pos", pos_add))  # alias
 
     # RECAPS
