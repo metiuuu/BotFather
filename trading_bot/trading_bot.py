@@ -581,45 +581,50 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = """
 📘 *Panduan Bot Trading*
 
-    📝 *Catat/Edit/Hapus Transaksi (Day Trading)*
-    `/trade_add SAHAM JUMLAH`
-    `/trade_edit ID JUMLAH_BARU`
-    `/trade_delete ID`
-    `/trade_list [filter]`
-    `/trades_all` → Daftar semua trade (shortcut)
-    Alias: `/pl SAHAM JUMLAH`
-    Contoh:
-    `/trade_add PSDN +6300000`
-    `/trade_add BBRI -2000000`
-    
-    🏦 *Catat/Edit/Hapus Posisi Saham (Swing Trading)*
-    `/pos_add SAHAM JUMLAH HARGA_RATA`
-    `/pos_edit ID JUMLAH_BARU HARGA_RATA_BARU`
-    `/pos_delete ID`
-    `/pos_list [filter]`
-    `/pos_all`
-    Alias tambah posisi: `/pos SAHAM JUMLAH HARGA_RATA`
+Catat/Edit/Hapus Transaksi (Day Trading)
+- `/trade_add SAHAM JUMLAH`
+- `/trade_edit ID JUMLAH_BARU`
+- `/trade_delete ID`
+- `/trade_list [--user me|NAMA] [--symbol KODE] [--from YYYY-MM-DD] [--to YYYY-MM-DD]`
+- `/trades_all` → Daftar semua trade (shortcut)
+- Alias tambah PL: `/pl SAHAM JUMLAH`
+Contoh:
+- `/trade_add PSDN +6300000`
+- `/trade_add BBRI -2,000,000`
+- `/trade_list --user me --symbol BBRI --from 2025-09-01 --to 2025-09-30`
+Catatan: filter `--user @username` belum sepenuhnya didukung; gunakan `--user me` atau nama tampilan Anda.
 
-    *Admin:*
-    `/admin_pos_add USER SAHAM JUMLAH HARGA_RATA`
-    `/admin_trade_add USER SAHAM JUMLAH`
-    
-    📊 *Rekap*
-    `/recap daily|weekly|monthly`
-    (Daily recap otomatis jam 16:00 WIB)
-    
-    🏆 *Leaderboard*
-    `/leaderboard` → Ranking bulanan
-    
-    🔍 *Stock Spesifik*
-    `/stock KODE` → Lihat transaksi per saham
-    
-    👤 *Statistik Pribadi*
-    `/mystats` → Statistik bulan ini
-    
-    ℹ️ *Bantuan*
-    `/help` → Tampilkan panduan ini
-    """
+🏦 Catat/Edit/Hapus Posisi Saham (Swing Trading)
+- `/pos_add SAHAM JUMLAH HARGA_RATA`
+- `/pos_edit ID JUMLAH_BARU HARGA_RATA_BARU`
+- `/pos_delete ID`
+- `/pos_list [--user me|NAMA]`
+- `/pos_all`
+- Alias tambah posisi: `/pos SAHAM JUMLAH HARGA_RATA`
+Contoh:
+- `/pos_add BBRI 500 5250`
+- `/pos_list --user me`
+
+📊 Rekap
+- `/recap daily|weekly|monthly`
+- Daily recap otomatis jam 18:00 WIB (Senin–Jumat)
+
+🏆 Leaderboard
+- `/leaderboard` → Ranking bulanan
+
+🔍 Stock Spesifik
+- `/stock KODE` → Lihat transaksi per saham
+
+👤 Statistik Pribadi
+- `/mystats` → Statistik bulan ini
+
+ℹ️ Bantuan
+- `/help` → Tampilkan panduan ini
+
+Tips:
+- Angka bisa memakai tanda `+` atau `-` dan boleh pakai koma, contoh: `+1,250,000`.
+- Nilai JUMLAH pada trade adalah P/L (profit/loss) per transaksi.
+"""
     await update.message.reply_text(msg, parse_mode="Markdown")
 
 def main():
@@ -628,6 +633,7 @@ def main():
 
     # TRADES
     app.add_handler(CommandHandler("trade_add", trade_add))
+    app.add_handler(CommandHandler("admin_trade_add", admin_trade_add))
     app.add_handler(CommandHandler("trade_edit", trade_edit))
     app.add_handler(CommandHandler("trade_delete", trade_delete))
     app.add_handler(CommandHandler("trade_list", trade_list))
@@ -636,12 +642,11 @@ def main():
 
     # POSITIONS
     app.add_handler(CommandHandler("pos_add", pos_add))
+    app.add_handler(CommandHandler("admin_pos_add", admin_pos_add))
     app.add_handler(CommandHandler("pos_edit", pos_edit))
     app.add_handler(CommandHandler("pos_delete", pos_delete))
     app.add_handler(CommandHandler("pos_list", pos_list))
     app.add_handler(CommandHandler("pos_all", pos_all))
-    app.add_handler(CommandHandler("admin_pos_add", admin_pos_add))
-    app.add_handler(CommandHandler("admin_trade_add", admin_trade_add))
     app.add_handler(CommandHandler("pos", pos_add))  # alias
 
     # RECAPS
