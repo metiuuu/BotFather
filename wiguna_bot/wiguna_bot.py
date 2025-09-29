@@ -11,17 +11,9 @@ from telegram.ext import (
     Application, CommandHandler, ContextTypes
 )
 
-# ==== MongoDB Setup ====
-try:
-    from pymongo import MongoClient
-    MONGO_AVAILABLE = True
-except Exception:
-    MongoClient = None
-    MONGO_AVAILABLE = False
-
 # ================= CONFIG =================
 BOT_TOKEN = "8287396294:AAFADT7sa0pJsy8HejGjPCVFQej1BQG-iEc"
-GROUP_CHAT_ID = -1003108578811
+GROUP_CHAT_ID = -4883871034
 ADMIN_USERNAMES = ["eemmje"]
 
 JAKARTA_TZ = pytz.timezone("Asia/Jakarta")
@@ -29,34 +21,6 @@ JAKARTA_TZ = pytz.timezone("Asia/Jakarta")
 # =============== Wiguna API Config ===============
 WIGUNA_API_URL = os.getenv("WIGUNA_API_URL", "https://api.wigunainvestment.com/recommendation/stockpick")
 WIGUNA_API_TOKEN = os.getenv("WIGUNA_API_TOKEN", "")
-
-# ================ DATABASE (SQLite legacy for trading logs) ================
-conn = sqlite3.connect("trades.db", check_same_thread=False)
-c = conn.cursor()
-
-# ================ MONGODB (Wiguna signals) ================
-MONGO_URI = os.getenv("MONGO_URI", "")
-MONGO_DB = os.getenv("MONGO_DB", "wiguna")
-MONGO_COLL = os.getenv("MONGO_COLLECTION", "signals")
-_mongo_client = None
-_mongo_coll = None
-
-def init_mongo():
-    global _mongo_client, _mongo_coll
-    if not MONGO_AVAILABLE:
-        return None
-    if _mongo_client is None:
-        if not MONGO_URI:
-            return None
-        try:
-            _mongo_client = MongoClient(MONGO_URI, connectTimeoutMS=5000, serverSelectionTimeoutMS=5000)
-            db = _mongo_client[MONGO_DB]
-            _mongo_coll = db[MONGO_COLL]
-        except Exception as e:
-            print(f"⚠️ Mongo init failed: {e}")
-            _mongo_client = None
-            _mongo_coll = None
-    return _mongo_coll
 
 # ============== HELPER FUNCS ==============
 def safe_handler(func):
