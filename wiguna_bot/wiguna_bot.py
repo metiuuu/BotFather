@@ -1,10 +1,10 @@
-import sqlite3
-from datetime import datetime, timedelta
-import os
-import json
 import asyncio
-import urllib.request
+import json
+import os
 import urllib.error
+import urllib.request
+from datetime import datetime
+
 import pytz
 from telegram import Update
 from telegram.ext import (
@@ -30,7 +30,7 @@ def safe_handler(func):
         except Exception as e:
             print(f"⚠️ Error in {func.__name__}: {e}")
             if update.message:
-                await update.message.reply_text(f"⚠️ Terjadi error: {e}")
+                await send_text(update, context, f"⚠️ Terjadi error: {e}")
     return wrapper
 
 async def maybe_delete_command(update: Update):
@@ -49,8 +49,16 @@ def format_amount(amount: float) -> str:
     emoji = "📈" if amount > 0 else "📉" if amount < 0 else "➖"
     return f"{amount:+,.0f} {emoji}"
 
-def today_str():
-    return datetime.now(JAKARTA_TZ).strftime("%Y-%m-%d")
+async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str, parse_mode: str | None = None):
+    """Send a plain message to the chat without replying to a (possibly deleted) message."""
+    try:
+        chat = getattr(update, "effective_chat", None)
+        if chat is None:
+            return
+        await context.bot.send_message(chat_id=chat.id, text=text, parse_mode=parse_mode)
+    except Exception as e:
+        # Avoid breaking command flow if sending fails
+        print(f"⚠️ Failed to send message: {e}")
 
 def parse_flags(args: list[str]) -> dict:
     """Minimal flag parser for commands like /trade list and /pos list"""
@@ -92,18 +100,18 @@ async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await maybe_delete_command(update)
 
     if not WIGUNA_API_TOKEN:
-        await update.message.reply_text("❌ WIGUNA_API_TOKEN belum diset di environment.")
+        await send_text(update, context, "❌ WIGUNA_API_TOKEN belum diset di environment.")
         return
 
     if len(context.args) < 2:
-        await update.message.reply_text("Usage: /set_signal KODE ENTRY [KETERANGAN]")
+        await send_text(update, context, "Usage: /set_signal KODE ENTRY [KETERANGAN]")
         return
 
     kode = context.args[0].upper()
     try:
         entry = float(context.args[1].replace(",", ""))
     except ValueError:
-        await update.message.reply_text("ENTRY must be a number")
+        await send_text(update, context, "ENTRY must be a number")
         return
     keterangan = " ".join(context.args[2:]).strip() if len(context.args) > 2 else None
 
@@ -141,9 +149,11 @@ async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status, body = await asyncio.to_thread(_post)
 
     if status and 200 <= status < 300:
-        await update.message.reply_text(f"✅ Sinyal terkirim: {kode} entry {entry}\nResponse: {body[:400]}")
+        await send_text(update, context, f"✅ Sinyal terkirim: {kode} entry {entry}\nResponse: {body[:400]}")
     else:
-        await update.message.reply_text(
+        await send_text(
+            update,
+            context,
             f"❌ Gagal kirim sinyal (status: {status}).\nBody/Err: {body[:400]}"
         )
 
@@ -160,7 +170,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
       - `WIGUNA_API_URL` (default: https://api.wigunainvestment.com/recommendation/stockpick)
       - `WIGUNA_API_TOKEN` (wajib)
     """
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    await send_text(update, context, msg, parse_mode="Markdown")
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
@@ -177,7 +187,7 @@ def main():
     async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"⚠️ Unhandled error: {context.error}")
         if getattr(update, "message", None):
-            await update.message.reply_text(f"⚠️ Terjadi error: {context.error}")
+            await send_text(update, context, f"⚠️ Terjadi error: {context.error}")
 
     app.add_error_handler(error_handler)
     app.run_polling()
