@@ -20,7 +20,68 @@ JAKARTA_TZ = pytz.timezone("Asia/Jakarta")
 
 # =============== Wiguna API Config ===============
 WIGUNA_API_URL = os.getenv("WIGUNA_API_URL", "https://api.wigunainvestment.com/recommendation/stockpick")
+WIGUNA_AUTH_URL = os.getenv("WIGUNA_AUTH_URL", "https://api.wigunainvestment.com/auth/token")
 WIGUNA_API_TOKEN = os.getenv("WIGUNA_API_TOKEN", "")
+
+
+def resolve_wiguna_token(force_refresh: bool = False) -> str:
+    """Return a valid Wiguna API token.
+
+    - Uses in-memory/env WIGUNA_API_TOKEN if available (and not forcing refresh).
+    - Otherwise, fetches a new token using WIGUNA_EMAIL and WIGUNA_PASSWORD envs
+      by calling the Wiguna Auth API, then updates both the module-level
+      WIGUNA_API_TOKEN and process env for subsequent calls.
+    """
+    global WIGUNA_API_TOKEN
+
+    if WIGUNA_API_TOKEN and not force_refresh:
+        return WIGUNA_API_TOKEN
+
+    email = os.getenv("WIGUNA_EMAIL")
+    password = os.getenv("WIGUNA_PASSWORD")
+    if not email or not password:
+        raise RuntimeError("WIGUNA_EMAIL dan/atau WIGUNA_PASSWORD belum diset di environment.")
+
+    # Prepare request to auth endpoint
+    payload = json.dumps({"email": email, "password": password}).encode("utf-8")
+    req = urllib.request.Request(
+        WIGUNA_AUTH_URL,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            body = resp.read().decode("utf-8", errors="ignore")
+            try:
+                data = json.loads(body) if body else {}
+            except Exception:
+                data = {}
+
+            # Try common fields for token
+            token = (
+                (data.get("data") or {}).get("token")
+                if isinstance(data.get("data"), dict)
+                else None
+            ) or data.get("token") or data.get("access_token") or data.get("jwt")
+
+            if not token:
+                # As a fallback, if body is a plain string token
+                if isinstance(data, str) and data.strip():
+                    token = data.strip()
+                else:
+                    raise RuntimeError(f"Tidak bisa mendapatkan token dari response auth: {body[:400]}")
+
+            # Cache in memory and environment
+            WIGUNA_API_TOKEN = token
+            os.environ["WIGUNA_API_TOKEN"] = token
+            return token
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="ignore") if hasattr(e, "read") else str(e)
+        raise RuntimeError(f"Auth gagal (HTTP {e.code}): {err_body[:400]}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Auth gagal (URLError): {e}")
 
 # ============== HELPER FUNCS ==============
 def safe_handler(func):
@@ -99,8 +160,10 @@ async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     await maybe_delete_command(update)
 
-    if not WIGUNA_API_TOKEN:
-        await send_text(update, context, "❌ WIGUNA_API_TOKEN belum diset di environment.")
+    try:
+        token = await asyncio.to_thread(resolve_wiguna_token)
+    except Exception as e:
+        await send_text(update, context, f"❌ Gagal mendapatkan token Wiguna: {e}")
         return
 
     if len(context.args) < 2:
@@ -131,7 +194,7 @@ async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             WIGUNA_API_URL,
             data=data,
             headers={
-                "Authorization": f"Bearer {WIGUNA_API_TOKEN}",
+                "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             },
             method="POST",
@@ -166,9 +229,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     🧩 Wiguna Signal (API)
     - `/set_signal KODE ENTRY [KETERANGAN]` → Kirim sinyal ke API Wiguna. Contoh: `/set_signal PSDN 4500 Bullish trend`.
-    - Konfigurasi env:
-      - `WIGUNA_API_URL` (default: https://api.wigunainvestment.com/recommendation/stockpick)
-      - `WIGUNA_API_TOKEN` (wajib)
     """
     await send_text(update, context, msg, parse_mode="Markdown")
 
