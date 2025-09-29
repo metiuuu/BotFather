@@ -10,7 +10,7 @@ from telegram.ext import (
 # ================= CONFIG =================
 BOT_TOKEN = "8251117512:AAGQaACbjQV525_fNNlEMoM1wD21g9jlSsQ"  # <- replace with BotFather token
 GROUP_CHAT_ID = -1003108578811          # <- replace with your group chat_id
-ADMIN_USERNAME = "eemmje"         # <- replace with your Telegram username (no @)
+ADMIN_USERNAMES = ["eemmje", "Razzled123x"]         # <- replace with your Telegram usernames (no @)
 
 JAKARTA_TZ = pytz.timezone("Asia/Jakarta")
 
@@ -72,7 +72,7 @@ async def edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     owner = row[0]
-    if owner != user and username != ADMIN_USERNAME:
+    if owner != user and username not in ADMIN_USERNAMES:
         await update.message.reply_text("⛔ You can only edit your own trades")
         return
 
@@ -97,7 +97,7 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     owner = row[0]
-    if owner != user and username != ADMIN_USERNAME:
+    if owner != user and username not in ADMIN_USERNAMES:
         await update.message.reply_text("⛔ You can only delete your own trades")
         return
 
@@ -129,7 +129,7 @@ async def posedit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     owner = row[0]
-    if owner != user and username != ADMIN_USERNAME:
+    if owner != user and username not in ADMIN_USERNAMES:
         await update.message.reply_text("⛔ You can only edit your own positions")
         return
 
@@ -158,7 +158,7 @@ async def posdel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     owner = row[0]
-    if owner != user and username != ADMIN_USERNAME:
+    if owner != user and username not in ADMIN_USERNAMES:
         await update.message.reply_text("⛔ You can only delete your own positions")
         return
 
@@ -389,35 +389,44 @@ async def positions_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = """
-        📘 Panduan Bot Trading
-        
-        📝 Catat Transaksi
-        /pl SAHAM JUMLAH
-        contoh:
-        /pl PSDN +6300000
-        /pl BBRI -2000000
-        
-        ✏️ Edit & Hapus
-        /edit ID JUMLAH_BARU
-        /delete ID
+📘 *Panduan Bot Trading*
 
-        🏦 Posisi Saham
-        /pos SAHAM JUMLAH HARGA_RATA
-        /posedit ID JUMLAH_BARU HARGA_RATA_BARU
-        /posdel ID
-        /mypos → Posisi saya
-        /positions → Semua posisi
-        
-        📊 Rekap
-        /weekly  → Rekap Mingguan
-        /monthly → Rekap Bulanan
-        (Harian otomatis jam 16:00 WIB)
-        
-        /leaderboard → Ranking bulanan
-        /stock KODE → Lihat transaksi 1 saham
-        /mystats → Statistik pribadi bulan ini
+    📝 *Catat Transaksi (Day Trading)*
+    `/pl SAHAM JUMLAH`
+    Contoh:
+    `/pl PSDN +6300000`
+    `/pl BBRI -2000000`
+    
+    ✏️ *Edit & Hapus (Day Trading)*
+    `/edit ID JUMLAH_BARU`
+    `/delete ID`
+    _Admin dapat edit/hapus semua_
+    
+    🏦 *Posisi Saham (Swing Trading)*
+    `/pos SAHAM JUMLAH HARGA_RATA`
+    `/posedit ID JUMLAH_BARU HARGA_RATA_BARU`
+    `/posdel ID`
+    `/mypos` → Posisi saya
+    `/positions` → Semua posisi + group totals & average
+    
+    📊 *Rekap*
+    `/weekly` → Rekap Mingguan
+    `/monthly` → Rekap Bulanan
+    (Daily recap otomatis jam 16:00 WIB)
+    
+    🏆 *Leaderboard*
+    `/leaderboard` → Ranking bulanan
+    
+    🔍 *Stock Spesifik*
+    `/stock KODE` → Lihat transaksi per saham
+    
+    👤 *Statistik Pribadi*
+    `/mystats` → Statistik bulan ini
+    
+    ℹ️ *Bantuan*
+    `/help` → Tampilkan panduan ini
     """
-    await update.message.reply_text(msg)
+    await update.message.reply_text(msg, parse_mode="Markdown")
 
 # ================== MAIN ==================
 def main():
