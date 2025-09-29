@@ -19,6 +19,16 @@ conn = sqlite3.connect("trades.db", check_same_thread=False)
 c = conn.cursor()
 
 # ============== HELPER FUNCS ==============
+def safe_handler(func):
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            await func(update, context)
+        except Exception as e:
+            print(f"⚠️ Error in {func.__name__}: {e}")
+            if update.message:
+                await update.message.reply_text(f"⚠️ Terjadi error: {e}")
+    return wrapper
+
 def format_amount(amount: float) -> str:
     emoji = "📈" if amount > 0 else "📉" if amount < 0 else "➖"
     return f"{amount:+,.0f} {emoji}"
@@ -61,6 +71,7 @@ def stored_owner_key(update: Update) -> tuple[str, str]:
     return (update.effective_user.first_name, update.effective_user.first_name)
 
 # ================ COMMANDS (TRADES) ================
+@safe_handler
 async def trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Add a trade P/L entry: /trade add SYMBOL AMOUNT"""
     if len(context.args) < 2:
@@ -79,6 +90,7 @@ async def trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     await update.message.reply_text(f"✅ Logged {stock} {format_amount(amount)} for {display_name}")
 
+@safe_handler
 async def trade_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Edit a trade by ID: /trade edit ID NEW_AMOUNT"""
     if len(context.args) < 2:
@@ -106,6 +118,7 @@ async def trade_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     await update.message.reply_text(f"✏️ Updated trade {trade_id} → {format_amount(new_amount)}")
 
+@safe_handler
 async def trade_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Delete a trade by ID: /trade delete ID"""
     if len(context.args) < 1:
@@ -126,6 +139,7 @@ async def trade_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     await update.message.reply_text(f"🗑️ Deleted trade {trade_id}")
 
+@safe_handler
 async def trade_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """List trades with filters:
     /trade list [--user @username|me] [--symbol SYMBOL] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
@@ -193,6 +207,7 @@ async def trade_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ================ TRADES ALL SHORTCUT ================
+@safe_handler
 async def trades_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Shortcut: list all trades (no filters)"""
     # Call trade_list with no args
@@ -200,6 +215,7 @@ async def trades_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await trade_list(update, context)
 
 # ================ COMMANDS (POSITIONS) ================
+@safe_handler
 async def pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Add a position: /pos add SYMBOL QTY AVG_PRICE"""
     if len(context.args) < 3:
@@ -222,6 +238,7 @@ async def pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     await update.message.reply_text(f"✅ Logged position {stock} Qty: {quantity} Avg Price: {avg_price} for {display_name}")
 
+@safe_handler
 async def pos_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Edit a position: /pos edit ID QTY AVG_PRICE"""
     if len(context.args) < 3:
@@ -252,6 +269,7 @@ async def pos_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     await update.message.reply_text(f"✏️ Updated position {pos_id} → Qty: {new_qty}, Avg Price: {new_avg}")
 
+@safe_handler
 async def pos_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Delete a position: /pos delete ID"""
     if len(context.args) < 1:
@@ -272,6 +290,7 @@ async def pos_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     await update.message.reply_text(f"🗑️ Deleted position {pos_id}")
 
+@safe_handler
 async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """List positions:
     /pos list [--user @username|me]
@@ -310,6 +329,7 @@ async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg += "\n"
     await update.message.reply_text(msg)
 
+@safe_handler
 async def pos_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Group positions with totals and weighted average: /pos all"""
     c.execute("SELECT user, stock, quantity, avg_price FROM positions ORDER BY user")
@@ -340,6 +360,7 @@ async def pos_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 # ========== DAILY / WEEKLY / MONTHLY ==========
+@safe_handler
 async def daily_recap(context: ContextTypes.DEFAULT_TYPE):
     """Auto recap at 16:00 WIB"""
     today = today_str()
@@ -365,6 +386,7 @@ async def daily_recap(context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(chat_id=GROUP_CHAT_ID, text=msg)
 
+@safe_handler
 async def recap(update: Update, context: ContextTypes.DEFAULT_TYPE, period: str):
     """Generic recap: weekly or monthly"""
     today = datetime.now(JAKARTA_TZ)
@@ -400,6 +422,7 @@ async def recap(update: Update, context: ContextTypes.DEFAULT_TYPE, period: str)
 
     await update.message.reply_text(msg)
 
+@safe_handler
 async def recap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/recap daily|weekly|monthly"""
     period = (context.args[0].lower() if context.args else "monthly")
@@ -408,13 +431,16 @@ async def recap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await recap(update, context, period)
 
+@safe_handler
 async def weekly(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await recap(update, context, "weekly")
 
+@safe_handler
 async def monthly(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await recap(update, context, "monthly")
 
 # ================ LEADERBOARD =================
+@safe_handler
 async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = datetime.now(JAKARTA_TZ)
     start = today.replace(day=1)
@@ -436,6 +462,7 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 # ================ STOCK FILTER =================
+@safe_handler
 async def stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("Usage: /stock SYMBOL")
@@ -466,6 +493,7 @@ async def stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 # ================ MY STATS =================
+@safe_handler
 async def mystats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user.first_name
     today = datetime.now(JAKARTA_TZ)
@@ -494,6 +522,7 @@ async def mystats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 # ============== ADMIN COMMANDS ==============
+@safe_handler
 async def admin_pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin: /admin pos add USER SYMBOL QTY AVG_PRICE"""
     if not user_is_admin(update):
@@ -524,6 +553,7 @@ async def admin_pos_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ============== ADMIN TRADE ADD ==============
+@safe_handler
 async def admin_trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin: /admin trade add USER SYMBOL AMOUNT"""
     if not user_is_admin(update):
@@ -546,6 +576,7 @@ async def admin_trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Added trade {stock} {format_amount(amount)} for {user}")
 
  # ================== MAIN ==================
+@safe_handler
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = """
 📘 *Panduan Bot Trading*
@@ -635,6 +666,13 @@ def main():
     )
 
     print("🚀 Bot running...")
+
+    async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        print(f"⚠️ Unhandled error: {context.error}")
+        if getattr(update, "message", None):
+            await update.message.reply_text(f"⚠️ Terjadi error: {context.error}")
+
+    app.add_error_handler(error_handler)
     app.run_polling()
 
 if __name__ == "__main__":
