@@ -36,7 +36,7 @@ cd wiguna-telegram
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r trading_bot/requirement.txt
 ```
 
 ---
@@ -57,7 +57,7 @@ ADMIN_USERNAME = "yourusername"  # without @
 ```bash
 tmux new -s tradingbot
 source venv/bin/activate
-python trading_bot.py
+python trading_bot/trading_bot.py
 ```
 Detach: `Ctrl+B, D`  
 Reattach: `tmux attach -t tradingbot`  
@@ -74,8 +74,8 @@ Description=Telegram Trading Bot
 After=network.target
 
 [Service]
-ExecStart=/root/tradingbot/venv/bin/python /root/tradingbot/trading_bot.py
-WorkingDirectory=/root/tradingbot
+ExecStart=/root/wiguna-telegram/venv/bin/python /root/wiguna-telegram/trading_bot/trading_bot.py
+WorkingDirectory=/root/wiguna-telegram
 StandardOutput=append:/var/log/tradingbot.log
 StandardError=append:/var/log/tradingbot.log
 Restart=always
@@ -101,31 +101,33 @@ sudo journalctl -u tradingbot -f
 
 ## 5. Bot Commands
 
-### 📌 Logging Trades
+### 📌 Trades (Day Trading)
 ```
-/pl STOCK AMOUNT
+/trade_add STOCK AMOUNT
+/trade_edit ID NEW_AMOUNT
+/trade_delete ID
+/trade_list [filters]
 ```
+Alias: `/pl STOCK AMOUNT`
 
-### ✏️ Edit & Delete Trades
+### 🏦 Positions (Swing Trading)
 ```
-/edit ID NEW_AMOUNT
-/delete ID
+/pos_add STOCK QTY AVG_PRICE
+/pos_edit ID NEW_QTY NEW_AVG
+/pos_delete ID
+/pos_list [filters]
+/pos_all
 ```
-
-### 🏦 Swing Trading Positions
-```
-/pos STOCK QTY AVG_PRICE
-/mypos
-/positions
-/posedit ID NEW_QTY NEW_AVG
-/posdel ID
-```
+Admin: `/admin_pos_add USER STOCK QTY AVG_PRICE`
+Alias: `/pos STOCK QTY AVG_PRICE`
 
 ### 📊 Recaps
 ```
+/recap daily
 /weekly
 /monthly
 ```
+Auto daily recap: 18:00 WIB (Mon–Fri)
 
 ### 🏆 Leaderboard
 ```
@@ -189,7 +191,7 @@ typing_extensions==4.15.0
 tzlocal==5.3.1
 ```
 
-These should also be captured in a `requirements.txt` file for reproducibility.
+These should also be captured in `trading_bot/requirement.txt` for reproducibility.
 
 ---
 
