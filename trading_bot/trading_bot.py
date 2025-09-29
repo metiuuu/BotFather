@@ -517,22 +517,25 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📘 *Panduan Bot Trading*
 
     📝 *Catat/Edit/Hapus Transaksi (Day Trading)*
-    `/trade add SAHAM JUMLAH`
-    `/trade edit ID JUMLAH_BARU`
-    `/trade delete ID`
-    `/trade list` → List transaksi (ada filter)
+    `/trade_add SAHAM JUMLAH`
+    `/trade_edit ID JUMLAH_BARU`
+    `/trade_delete ID`
+    `/trade_list [filter]`
+    Alias: `/pl SAHAM JUMLAH`
     Contoh:
-    `/trade add PSDN +6300000`
-    `/trade add BBRI -2000000`
+    `/trade_add PSDN +6300000`
+    `/trade_add BBRI -2000000`
     
     🏦 *Catat/Edit/Hapus Posisi Saham (Swing Trading)*
-    `/pos add SAHAM JUMLAH HARGA_RATA`
-    `/pos edit ID JUMLAH_BARU HARGA_RATA_BARU`
-    `/pos delete ID`
-    `/pos list` → List posisi (ada filter)
-    `/pos all` → Semua posisi + group totals & average
+    `/pos_add SAHAM JUMLAH HARGA_RATA`
+    `/pos_edit ID JUMLAH_BARU HARGA_RATA_BARU`
+    `/pos_delete ID`
+    `/pos_list [filter]`
+    `/pos_all`
+    Alias tambah posisi: `/pos SAHAM JUMLAH HARGA_RATA`
 
-    Admin: `/admin pos add USER SAHAM JUMLAH HARGA_RATA`
+    Admin:
+    `/admin_pos_add USER SAHAM JUMLAH HARGA_RATA`
     
     📊 *Rekap*
     `/recap daily|weekly|monthly`
