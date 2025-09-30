@@ -12,8 +12,8 @@ from telegram.ext import (
 )
 
 # ================= CONFIG =================
-BOT_TOKEN = "8287396294:AAFADT7sa0pJsy8HejGjPCVFQej1BQG-iEc"
-GROUP_CHAT_ID = -4883871034
+BOT_TOKEN = os.getenv("WIGUNA_BOT_TOKEN")
+GROUP_CHAT_ID = os.getenv("WIGUNA_GROUP_ID")
 ADMIN_USERNAMES = ["eemmje"]
 
 JAKARTA_TZ = pytz.timezone("Asia/Jakarta")

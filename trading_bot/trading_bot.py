@@ -1,15 +1,16 @@
+import os
 import sqlite3
 from datetime import datetime, timedelta
+
 import pytz
 from telegram import Update
 from telegram.ext import (
-    Application, CommandHandler, ContextTypes,
-    MessageHandler, filters
+    Application, CommandHandler, ContextTypes
 )
 
 # ================= CONFIG =================
-BOT_TOKEN = "8251117512:AAGQaACbjQV525_fNNlEMoM1wD21g9jlSsQ"  # <- replace with BotFather token
-GROUP_CHAT_ID = -1003108578811          # <- replace with your group chat_id
+BOT_TOKEN = os.getenv("TRADING_BOT_TOKEN")  # <- replace with BotFather token
+GROUP_CHAT_ID = os.getenv("TRADING_GROUP_ID")          # <- replace with your group chat_id
 ADMIN_USERNAMES = ["eemmje", "Razzled123x"]         # <- replace with your Telegram usernames (no @)
 
 JAKARTA_TZ = pytz.timezone("Asia/Jakarta")
