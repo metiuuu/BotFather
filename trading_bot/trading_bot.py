@@ -611,56 +611,37 @@ async def admin_trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await maybe_delete_command(update)
     msg = """
-📘 Panduan Bot Trading (Versi Ringkas untuk Mobile)
+📘 Panduan Cepat Bot Trading
 
-Trades (Day Trading)
-- Tambah: /tadd SYMBOL AMOUNT  (juga: /pl SYMBOL AMOUNT)
-- Ubah:   /tedit ID NEW_AMOUNT
-- Hapus:  /tdel ID
-- List:   /tlist [--user me|NAME] [--symbol SYMBOL] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
-- Catatan: /trades_all sudah deprecated → pakai /tlist
-Contoh:
-- /tadd PSDN +6300000
-- /tadd BBRI -2,000,000
-- /tlist --user me --symbol BBRI --from 2025-09-01 --to 2025-09-30
-Catatan: filter --user @username belum sepenuhnya didukung; gunakan --user me atau nama tampilan Anda.
+Trades
+- Add: /tadd SYMBOL AMOUNT
+- Edit: /tedit ID NEW_AMOUNT
+- Delete: /tdel ID
+- List: /tlist [--user me|NAME] [--symbol SYM] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
 
-Positions (Swing Trading)
-- Tambah: /padd SYMBOL QTY AVG_PRICE  (juga: /pos SYMBOL QTY AVG_PRICE)
-- Ubah:   /pedit ID NEW_QTY NEW_AVG_PRICE
-- Hapus:  /pdel ID
-- List:   /plist [--user me|NAME]
-- Ringkasan: /pall
+Positions
+- Add: /padd SYMBOL QTY AVG_PRICE
+- Edit: /pedit ID NEW_QTY NEW_AVG_PRICE
+- Delete: /pdel ID
+- List: /plist [--user me|NAME]
+- Summary: /pall
 
 Recaps
 - /rc daily|weekly|monthly
-- /wd  (Weekly)
-- /mo  (Monthly)
-- Recap harian otomatis jam 18:00 WIB (Senin–Jumat)
+- /wd (weekly), /mo (monthly)
 
-Leaderboard
-- /lb
-
-Stock-specific
-- /s SYMBOL
-
-My Stats
-- /me
+Stats
+- /lb — Leaderboard
+- /s SYMBOL — Stock view
+- /me — My stats
 
 Admin
 - /admin_trade_add USER SYMBOL AMOUNT
 - /admin_pos_add USER SYMBOL QTY AVG_PRICE
 
-Catatan Kompatibilitas:
-- Perintah lama masih berfungsi: /trade_add, /trade_edit, /trade_delete, /trade_list, /pos_add, /pos_edit, /pos_delete, /pos_list, /pos_all, /leaderboard, /stock, /mystats, /recap, /weekly, /monthly
-- /trades_all tidak ditampilkan lagi (deprecated); gunakan /tlist
-
-Help
-- /help
-
-Tips:
-- Angka boleh pakai +/-, dan koma: +1,250,000
-- JUMLAH pada trade adalah P/L (profit/loss) per transaksi.
+Tips
+- Numbers can use +/− and commas, e.g. +1,250,000
+- Trade AMOUNT is per-trade P/L
 """
     await update.message.reply_text(msg, parse_mode="Markdown")
 
@@ -668,49 +649,27 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
     job_queue = app.job_queue
 
-    # TRADES
-    app.add_handler(CommandHandler("trade_add", trade_add))
-    app.add_handler(CommandHandler("admin_trade_add", admin_trade_add))
-    app.add_handler(CommandHandler("trade_edit", trade_edit))
-    app.add_handler(CommandHandler("trade_delete", trade_delete))
-    app.add_handler(CommandHandler("trade_list", trade_list))
-    app.add_handler(CommandHandler("trades_all", trades_all))  # deprecated shortcut; kept for compatibility
-    app.add_handler(CommandHandler("pl", trade_add))  # alias
-    # Short aliases (mobile-friendly)
+    # TRADES (new commands only)
     app.add_handler(CommandHandler("tadd", trade_add))
     app.add_handler(CommandHandler("tedit", trade_edit))
     app.add_handler(CommandHandler("tdel", trade_delete))
     app.add_handler(CommandHandler("tlist", trade_list))
+    app.add_handler(CommandHandler("admin_trade_add", admin_trade_add))
 
-    # POSITIONS
-    app.add_handler(CommandHandler("pos_add", pos_add))
-    app.add_handler(CommandHandler("admin_pos_add", admin_pos_add))
-    app.add_handler(CommandHandler("pos_edit", pos_edit))
-    app.add_handler(CommandHandler("pos_delete", pos_delete))
-    app.add_handler(CommandHandler("pos_list", pos_list))
-    app.add_handler(CommandHandler("pos_all", pos_all))
-    app.add_handler(CommandHandler("pos", pos_add))  # alias
-    # Short aliases (mobile-friendly)
+    # POSITIONS (new commands only)
     app.add_handler(CommandHandler("padd", pos_add))
     app.add_handler(CommandHandler("pedit", pos_edit))
     app.add_handler(CommandHandler("pdel", pos_delete))
     app.add_handler(CommandHandler("plist", pos_list))
     app.add_handler(CommandHandler("pall", pos_all))
+    app.add_handler(CommandHandler("admin_pos_add", admin_pos_add))
 
-    # RECAPS
-    app.add_handler(CommandHandler("recap", recap_command))
-    app.add_handler(CommandHandler("weekly", weekly))
-    app.add_handler(CommandHandler("monthly", monthly))
-    # Short aliases (mobile-friendly)
+    # RECAPS (new commands only)
     app.add_handler(CommandHandler("rc", recap_command))
     app.add_handler(CommandHandler("wd", weekly))
     app.add_handler(CommandHandler("mo", monthly))
 
-    # STATS
-    app.add_handler(CommandHandler("leaderboard", leaderboard))
-    app.add_handler(CommandHandler("stock", stock))
-    app.add_handler(CommandHandler("mystats", mystats))
-    # Short aliases (mobile-friendly)
+    # STATS (new commands only)
     app.add_handler(CommandHandler("lb", leaderboard))
     app.add_handler(CommandHandler("s", stock))
     app.add_handler(CommandHandler("me", mystats))
