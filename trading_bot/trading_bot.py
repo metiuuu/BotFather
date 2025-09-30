@@ -611,51 +611,52 @@ async def admin_trade_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await maybe_delete_command(update)
     msg = """
-📘 *Panduan Bot Trading*
+📘 Panduan Bot Trading
 
-Catat/Edit/Hapus Transaksi (Day Trading)
-- `/trade_add SAHAM JUMLAH`
-- `/trade_edit ID JUMLAH_BARU`
-- `/trade_delete ID`
-- `/trade_list [--user me|NAMA] [--symbol KODE] [--from YYYY-MM-DD] [--to YYYY-MM-DD]`
-- `/trades_all` → Daftar semua trade (shortcut)
-- Alias tambah PL: `/pl SAHAM JUMLAH`
+Trades (Day Trading)
+- /trade_add SYMBOL AMOUNT
+- /trade_edit ID NEW_AMOUNT
+- /trade_delete ID
+- /trade_list [--user me|NAME] [--symbol SYMBOL] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+- /trades_all (shortcut: list all)
+- Alias add P/L: /pl SYMBOL AMOUNT
 Contoh:
-- `/trade_add PSDN +6300000`
-- `/trade_add BBRI -2,000,000`
-- `/trade_list --user me --symbol BBRI --from 2025-09-01 --to 2025-09-30`
-Catatan: filter `--user @username` belum sepenuhnya didukung; gunakan `--user me` atau nama tampilan Anda.
+- /trade_add PSDN +6300000
+- /trade_add BBRI -2,000,000
+- /trade_list --user me --symbol BBRI --from 2025-09-01 --to 2025-09-30
+Catatan: filter --user @username belum sepenuhnya didukung; gunakan --user me atau nama tampilan Anda.
 
-🏦 Catat/Edit/Hapus Posisi Saham (Swing Trading)
-- `/pos_add SAHAM JUMLAH HARGA_RATA`
-- `/pos_edit ID JUMLAH_BARU HARGA_RATA_BARU`
-- `/pos_delete ID`
-- `/pos_list [--user me|NAMA]`
-- `/pos_all`
-- Alias tambah posisi: `/pos SAHAM JUMLAH HARGA_RATA`
-Contoh:
-- `/pos_add BBRI 500 5250`
-- `/pos_list --user me`
+Positions (Swing Trading)
+- /pos_add SYMBOL QTY AVG_PRICE
+- /pos_edit ID NEW_QTY NEW_AVG_PRICE
+- /pos_delete ID
+- /pos_list [--user me|NAME]
+- /pos_all
+- Alias add position: /pos SYMBOL QTY AVG_PRICE
 
-📊 Rekap
-- `/recap daily|weekly|monthly`
+Recaps
+- /recap daily|weekly|monthly
 - Daily recap otomatis jam 18:00 WIB (Senin–Jumat)
 
-🏆 Leaderboard
-- `/leaderboard` → Ranking bulanan
+Leaderboard
+- /leaderboard
 
-🔍 Stock Spesifik
-- `/stock KODE` → Lihat transaksi per saham
+Stock-specific
+- /stock SYMBOL
 
-👤 Statistik Pribadi
-- `/mystats` → Statistik bulan ini
+My Stats
+- /mystats
 
-ℹ️ Bantuan
-- `/help` → Tampilkan panduan ini
+Admin
+- /admin_trade_add USER SYMBOL AMOUNT
+- /admin_pos_add USER SYMBOL QTY AVG_PRICE
+
+Help
+- /help
 
 Tips:
-- Angka bisa memakai tanda `+` atau `-` dan boleh pakai koma, contoh: `+1,250,000`.
-- Nilai JUMLAH pada trade adalah P/L (profit/loss) per transaksi.
+- Angka boleh pakai +/-, dan koma: +1,250,000
+- JUMLAH pada trade adalah P/L (profit/loss) per transaksi.
 """
     await update.message.reply_text(msg, parse_mode="Markdown")
 
