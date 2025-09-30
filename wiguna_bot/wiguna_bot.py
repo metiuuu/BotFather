@@ -12,7 +12,7 @@ from telegram.ext import (
 )
 
 # ================= CONFIG =================
-BOT_TOKEN = os.getenv("WIGUNA_BOT_TOKEN")
+BOT_TOKEN = os.getenv("ss")
 GROUP_CHAT_ID = os.getenv("WIGUNA_GROUP_ID")
 ADMIN_USERNAMES = ["eemmje"]
 

@@ -636,8 +636,8 @@ Stats
 - /me — My stats
 
 Admin
-- /admin_trade_add USER SYMBOL AMOUNT
-- /admin_pos_add USER SYMBOL QTY AVG_PRICE
+- /admintadd USER SYMBOL AMOUNT
+- /adminpadd USER SYMBOL QTY AVG_PRICE
 
 Tips
 - Numbers can use +/− and commas, e.g. +1,250,000
@@ -654,7 +654,7 @@ def main():
     app.add_handler(CommandHandler("tedit", trade_edit))
     app.add_handler(CommandHandler("tdel", trade_delete))
     app.add_handler(CommandHandler("tlist", trade_list))
-    app.add_handler(CommandHandler("admin_trade_add", admin_trade_add))
+    app.add_handler(CommandHandler("admintadd", admin_trade_add))
 
     # POSITIONS (new commands only)
     app.add_handler(CommandHandler("padd", pos_add))
@@ -662,7 +662,7 @@ def main():
     app.add_handler(CommandHandler("pdel", pos_delete))
     app.add_handler(CommandHandler("plist", pos_list))
     app.add_handler(CommandHandler("pall", pos_all))
-    app.add_handler(CommandHandler("admin_pos_add", admin_pos_add))
+    app.add_handler(CommandHandler("adminpadd", admin_pos_add))
 
     # RECAPS (new commands only)
     app.add_handler(CommandHandler("rc", recap_command))
