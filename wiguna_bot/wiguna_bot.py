@@ -155,8 +155,8 @@ def stored_owner_key(update: Update) -> tuple[str, str]:
 # ================ WIGUNA SIGNAL (API) =================
 @safe_handler
 async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Kirim sinyal ke API Wiguna: /set_signal KODE ENTRY [KETERANGAN]
-    Contoh: /set_signal PSDN 4500 Bullish trend
+    """Kirim sinyal ke API Wiguna: /ss KODE ENTRY [KETERANGAN]
+    Contoh: /ss PSDN 4500 Bullish trend
     """
     await maybe_delete_command(update)
 
@@ -225,11 +225,12 @@ async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await maybe_delete_command(update)
     msg = """
-    📘 *Panduan Bot Wiguna*
-    
-    🧩 Wiguna Signal (API)
-    - `/set_signal KODE ENTRY [KETERANGAN]` → Kirim sinyal ke API Wiguna. Contoh: `/set_signal PSDN 4500 Bullish trend`.
-    """
+📘 Panduan Cepat Wiguna
+
+Signal
+- /ss KODE ENTRY [KETERANGAN]
+Contoh: /ss PSDN 4500 Bullish trend
+"""
     await send_text(update, context, msg, parse_mode="Markdown")
 
 def main():
@@ -239,8 +240,8 @@ def main():
     # HELP
     app.add_handler(CommandHandler("help", help_command))
 
-    # WIGUNA MONGO
-    app.add_handler(CommandHandler("set_signal", set_signal))
+    # WIGUNA SIGNAL (mobile-friendly)
+    app.add_handler(CommandHandler("ss", set_signal))
 
     print("🚀 Bot running...")
 
