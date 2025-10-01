@@ -1,11 +1,17 @@
 import os
 import sqlite3
+import difflib
 from datetime import datetime, timedelta
+VALID_COMMANDS = [
+    "tadd", "tedit", "tdel", "tlist", "admintadd",
+    "padd", "pedit", "pdel", "plist", "pall", "adminpadd",
+    "rc", "wd", "mo", "lb", "s", "me", "help"
+]
 
 import pytz
 from telegram import Update
 from telegram.ext import (
-    Application, CommandHandler, ContextTypes
+    Application, CommandHandler, ContextTypes, MessageHandler, filters
 )
 
 # ================= CONFIG =================
@@ -653,6 +659,22 @@ Tips
 """
     await update.message.reply_text(msg, parse_mode="Markdown")
 
+
+# ============== UNKNOWN COMMAND HANDLER ==============
+@safe_handler
+async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Try to find a close command match
+    if update.message and update.message.text:
+        text = update.message.text.strip()
+        if text.startswith("/"):
+            user_cmd = text[1:].split(" ")[0].split("@")[0]
+            matches = difflib.get_close_matches(user_cmd, VALID_COMMANDS, n=1, cutoff=0.6)
+            if matches:
+                closest = matches[0]
+                await update.message.reply_text(f"❓ Unknown command: /{user_cmd}\n👉 Did you mean /{closest}?")
+                return
+    await update.message.reply_text("❓ Unknown command. Use /help to see the list of available commands.")
+
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     job_queue = app.job_queue
@@ -684,6 +706,9 @@ def main():
 
     # HELP
     app.add_handler(CommandHandler("help", help_command))
+
+    # Unknown command handler
+    app.add_handler(MessageHandler(filters.COMMAND, unknown_command))
 
     # Daily recap at 18:00 WIB
     job_queue.run_daily(
