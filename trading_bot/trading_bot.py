@@ -291,25 +291,33 @@ async def pos_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @safe_handler
 async def pos_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Delete a position: /pos delete ID"""
+    """Delete one or more positions: /pos delete ID [ID ...]"""
     await maybe_delete_command(update)
     if len(context.args) < 1:
-        await update.message.reply_text("Usage: /pos delete ID")
+        await update.message.reply_text("Usage: /pos delete ID [ID ...]")
         return
-    pos_id = context.args[0]
+    deleted_ids = []
+    errors = []
     display_name, owner_key = stored_owner_key(update)
-    c.execute("SELECT user FROM positions WHERE id=?", (pos_id,))
-    row = c.fetchone()
-    if not row:
-        await update.message.reply_text("❌ Position not found")
-        return
-    owner_display = row[0]
-    if owner_display != display_name and not user_is_admin(update):
-        await update.message.reply_text("⛔ You can only delete your own positions")
-        return
-    c.execute("DELETE FROM positions WHERE id=?", (pos_id,))
-    conn.commit()
-    await update.message.reply_text(f"🗑️ Deleted position {pos_id}")
+    for pos_id in context.args:
+        c.execute("SELECT user FROM positions WHERE id=?", (pos_id,))
+        row = c.fetchone()
+        if not row:
+            errors.append(f"❌ Position {pos_id} not found")
+            continue
+        owner_display = row[0]
+        if owner_display != display_name and not user_is_admin(update):
+            errors.append(f"⛔ No permission for position {pos_id}")
+            continue
+        c.execute("DELETE FROM positions WHERE id=?", (pos_id,))
+        conn.commit()
+        deleted_ids.append(pos_id)
+    msg_lines = []
+    if deleted_ids:
+        msg_lines.append(f"🗑️ Deleted position(s): {', '.join(deleted_ids)}")
+    if errors:
+        msg_lines.extend(errors)
+    await update.message.reply_text("\n".join(msg_lines) if msg_lines else "No positions deleted.")
 
 @safe_handler
 async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -329,7 +337,7 @@ async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             where.append("user = ?")
             params.append(user_filter)
-    query = "SELECT user, stock, quantity, avg_price FROM positions"
+    query = "SELECT id, user, stock, quantity, avg_price FROM positions"
     if where:
         query += " WHERE " + " AND ".join(where)
     query += " ORDER BY user"
@@ -340,14 +348,14 @@ async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     summary = {}
-    for user, stock, quantity, avg_price in rows:
-        summary.setdefault(user, []).append((stock, quantity, avg_price))
+    for id_, user, stock, quantity, avg_price in rows:
+        summary.setdefault(user, []).append((id_, stock, quantity, avg_price))
 
     msg = "📊 Positions\n\n"
     for user, positions in summary.items():
         msg += f"{user}:\n"
-        for stock, quantity, avg_price in positions:
-            msg += f"  - {stock}: Qty={quantity}, Avg Price={avg_price}\n"
+        for id_, stock, quantity, avg_price in positions:
+            msg += f"  - [{id_}] {stock}: Qty={quantity}, Avg Price={avg_price}\n"
         msg += "\n"
     await update.message.reply_text(msg)
 
@@ -355,15 +363,15 @@ async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def pos_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Group positions with totals and weighted average: /pos all"""
     await maybe_delete_command(update)
-    c.execute("SELECT user, stock, quantity, avg_price FROM positions ORDER BY user")
+    c.execute("SELECT id, user, stock, quantity, avg_price FROM positions ORDER BY user")
     rows = c.fetchall()
     if not rows:
         await update.message.reply_text("📊 No positions found.")
         return
     summary = {}
     stock_totals = {}
-    for user, stock, quantity, avg_price in rows:
-        summary.setdefault(user, []).append((stock, quantity, avg_price))
+    for id_, user, stock, quantity, avg_price in rows:
+        summary.setdefault(user, []).append((id_, stock, quantity, avg_price))
         if stock not in stock_totals:
             stock_totals[stock] = {"total_qty": 0.0, "total_amount": 0.0}
         stock_totals[stock]["total_qty"] += quantity
@@ -371,8 +379,8 @@ async def pos_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = "📊 All Positions:\n\n"
     for user, positions in summary.items():
         msg += f"{user}:\n"
-        for stock, quantity, avg_price in positions:
-            msg += f"  - {stock}: Qty={quantity}, Avg Price={avg_price}\n"
+        for id_, stock, quantity, avg_price in positions:
+            msg += f"  - [{id_}] {stock}: Qty={quantity}, Avg Price={avg_price}\n"
         msg += "\n"
     msg += "------\n🧮 Group Stock Totals:\n"
     for stock, data in stock_totals.items():
