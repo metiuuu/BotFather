@@ -826,8 +826,16 @@ def main():
 
     async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"⚠️ Unhandled error: {context.error}")
-        if getattr(update, "message", None):
-            await update.message.reply_text(f"⚠️ Terjadi error: {context.error}")
+        # Try to send error message to chat if possible
+        chat = getattr(update, "effective_chat", None)
+        if chat is not None:
+            try:
+                await context.bot.send_message(chat_id=chat.id, text=f"⚠️ Terjadi error: {context.error}")
+            except Exception as send_exc:
+                print(f"⚠️ Failed to send error message to chat: {send_exc}")
+        else:
+            # No chat context, just log
+            print("⚠️ No chat context available for error message.")
 
     app.add_error_handler(error_handler)
     app.run_polling()
