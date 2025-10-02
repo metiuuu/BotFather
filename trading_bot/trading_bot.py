@@ -2,6 +2,8 @@ import os
 import sqlite3
 import difflib
 from datetime import datetime, timedelta
+import csv
+import tempfile
 VALID_COMMANDS = [
     "tadd", "tedit", "tdel", "tlist", "admintadd",
     "padd", "pedit", "pdel", "plist", "pall", "adminpadd",
@@ -229,6 +231,64 @@ async def trade_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg[i:i + MAX_LEN])
 
 
+# ================ TRADE EXPORT =================
+@safe_handler
+async def trade_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Export trades as CSV file with filters (like /tlist): /texport [flags]"""
+    await maybe_delete_command(update)
+    f = parse_flags(context.args)
+    user_filter = f["--user"]
+    symbol_filter = f["--symbol"]
+    from_filter = f["--from"]
+    to_filter = f["--to"]
+
+    params = []
+    where = []
+    if user_filter:
+        if user_filter.lower() == "me":
+            display_name, _ = stored_owner_key(update)
+            where.append("user = ?")
+            params.append(display_name)
+        elif user_filter.startswith("@"):
+            await update.message.reply_text("⚠️ Filtering by @username not fully supported yet; use --user me or omit.")
+        else:
+            where.append("user = ?")
+            params.append(user_filter)
+    if symbol_filter:
+        where.append("stock = ?")
+        params.append(symbol_filter.upper())
+    if from_filter:
+        where.append("date >= ?")
+        params.append(from_filter)
+    if to_filter:
+        where.append("date <= ?")
+        params.append(to_filter)
+
+    query = "SELECT id, user, stock, amount, date FROM logs"
+    if where:
+        query += " WHERE " + " AND ".join(where)
+    query += " ORDER BY date DESC, id DESC"
+    c.execute(query, tuple(params))
+    trades = c.fetchall()
+
+    if not trades:
+        await update.message.reply_text("📊 No trades found for given filters.")
+        return
+
+    # Write to a temporary CSV file
+    with tempfile.NamedTemporaryFile(mode="w+", newline="", suffix=".csv", delete=False) as tmpf:
+        writer = csv.writer(tmpf)
+        writer.writerow(["ID", "Date", "User", "Stock", "Amount"])
+        for tid, user, stock, amount, date in trades:
+            writer.writerow([tid, date, user, stock, amount])
+        tmpf.flush()
+        tmpf.seek(0)
+        # Send file as document
+        with open(tmpf.name, "rb") as f:
+            await update.message.reply_document(f, filename="trades_export.csv", caption="📊 Trades Export")
+
+
+
 # ================ TRADES ALL SHORTCUT ================
 @safe_handler
 async def trades_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -364,6 +424,44 @@ async def pos_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += f"  - [{id_}] {stock}: Qty={quantity}, Avg Price={avg_price}\n"
         msg += "\n"
     await update.message.reply_text(msg)
+
+
+# ================ POSITIONS EXPORT =================
+@safe_handler
+async def pos_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Export positions as CSV file: /pexport [flags]"""
+    await maybe_delete_command(update)
+    f = parse_flags(context.args)
+    user_filter = f["--user"]
+    params = []
+    where = []
+    if user_filter:
+        if user_filter.lower() == "me":
+            display_name, _ = stored_owner_key(update)
+            where.append("user = ?")
+            params.append(display_name)
+        else:
+            where.append("user = ?")
+            params.append(user_filter)
+    query = "SELECT id, user, stock, quantity, avg_price FROM positions"
+    if where:
+        query += " WHERE " + " AND ".join(where)
+    query += " ORDER BY user"
+    c.execute(query, tuple(params))
+    rows = c.fetchall()
+    if not rows:
+        await update.message.reply_text("📊 No positions found.")
+        return
+    # Write to a temporary CSV file
+    with tempfile.NamedTemporaryFile(mode="w+", newline="", suffix=".csv", delete=False) as tmpf:
+        writer = csv.writer(tmpf)
+        writer.writerow(["ID", "User", "Stock", "Quantity", "Avg_Price"])
+        for id_, user, stock, quantity, avg_price in rows:
+            writer.writerow([id_, user, stock, quantity, avg_price])
+        tmpf.flush()
+        tmpf.seek(0)
+        with open(tmpf.name, "rb") as f:
+            await update.message.reply_document(f, filename="positions_export.csv", caption="📊 Positions Export")
 
 @safe_handler
 async def pos_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -686,6 +784,9 @@ def main():
     app.add_handler(CommandHandler("tlist", trade_list))
     app.add_handler(CommandHandler("admintadd", admin_trade_add))
 
+    # TRADE EXPORT
+    app.add_handler(CommandHandler("texport", trade_export))
+
     # POSITIONS (new commands only)
     app.add_handler(CommandHandler("padd", pos_add))
     app.add_handler(CommandHandler("pedit", pos_edit))
@@ -693,6 +794,9 @@ def main():
     app.add_handler(CommandHandler("plist", pos_list))
     app.add_handler(CommandHandler("pall", pos_all))
     app.add_handler(CommandHandler("adminpadd", admin_pos_add))
+
+    # POSITIONS EXPORT
+    app.add_handler(CommandHandler("pexport", pos_export))
 
     # RECAPS (new commands only)
     app.add_handler(CommandHandler("rc", recap_command))
