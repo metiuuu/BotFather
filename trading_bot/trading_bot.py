@@ -730,6 +730,7 @@ Trades
 - Edit: /tedit ID NEW_AMOUNT
 - Delete: /tdel ID
 - List: /tlist [--user me|NAME] [--symbol SYM] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+- Export: /texport [--user me|NAME] [--symbol SYM] [--from YYYY-MM-DD] [--to YYYY-MM-DD] — Export trades as CSV
 
 Positions
 - Add: /padd SYMBOL QTY AVG_PRICE
@@ -737,6 +738,7 @@ Positions
 - Delete: /pdel ID
 - List: /plist [--user me|NAME]
 - Summary: /pall
+- Export: /pexport [--user me|NAME] — Export positions as CSV
 
 Recaps
 - /rc daily|weekly|monthly
