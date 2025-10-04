@@ -220,6 +220,52 @@ async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"❌ Gagal kirim sinyal (status: {status}).\nBody/Err: {body[:400]}"
         )
 
+@safe_handler
+async def get_exp2_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Ambil data dari endpoint exp2 Wiguna berdasarkan tanggal hari ini (weekday date)."""
+    await maybe_delete_command(update)
+
+    try:
+        token = await asyncio.to_thread(resolve_wiguna_token)
+    except Exception as e:
+        await send_text(update, context, f"❌ Gagal mendapatkan token Wiguna: {e}")
+        return
+
+    # Default: tanggal hari ini di zona Asia/Jakarta
+    today_jakarta = datetime.now(JAKARTA_TZ).strftime("%Y-%m-%d")
+    url = f"https://api.wigunainvestment.com/saham/exp2?tanggal={today_jakarta}"
+
+    def _get():
+        req = urllib.request.Request(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                body = resp.read().decode("utf-8", errors="ignore")
+                return resp.status, body
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="ignore") if hasattr(e, "read") else str(e)
+            return e.code, body
+        except urllib.error.URLError as e:
+            return None, str(e)
+
+    status, body = await asyncio.to_thread(_get)
+
+    if status and 200 <= status < 300:
+        preview = body[:1000]  # Limit panjang respons
+        await send_text(update, context, f"✅ Data exp2 untuk {today_jakarta}:\n\n{preview}")
+    else:
+        await send_text(
+            update,
+            context,
+            f"❌ Gagal ambil data exp2 (status: {status}).\nBody/Err: {body[:400]}"
+        )
+
  # ================== MAIN ==================
 @safe_handler
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -230,6 +276,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 Signal
 - /ss KODE ENTRY [KETERANGAN]
 Contoh: /ss PSDN 4500 Bullish trend
+
+Data Exp2
+- /exp2
+Ambil data ekspor saham (exp2) berdasarkan tanggal hari ini (weekday date).
 """
     await send_text(update, context, msg, parse_mode="Markdown")
 
@@ -242,6 +292,9 @@ def main():
 
     # WIGUNA SIGNAL (mobile-friendly)
     app.add_handler(CommandHandler("ss", set_signal))
+
+    # EXP2 DATA
+    app.add_handler(CommandHandler("exp2", get_exp2_data))
 
     print("🚀 Bot running...")
 
