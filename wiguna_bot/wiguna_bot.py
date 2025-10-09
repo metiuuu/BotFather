@@ -252,14 +252,19 @@ async def get_signal_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_text(update, context, f"❌ Format respons tidak valid:\n{body[:400]}")
         return
 
-    if isinstance(data, list) and len(data) > 0:
+    signal_list = data.get("list") if isinstance(data, dict) else None
+    if isinstance(signal_list, list) and len(signal_list) > 0:
         preview = []
-        for item in data[:5]:  # limit 5 results
-            code = item.get("code")
+        for item in signal_list[:5]:
+            kode = item.get("kode")
             entry = item.get("entry")
-            tanggal = item.get("tanggal")
+            harga = item.get("harga")
+            persen = item.get("persentase")
+            status = item.get("status")
             ket = item.get("keterangan") or "-"
-            preview.append(f"📊 {code} | {entry} | {tanggal}\n🗒️ {ket}")
+            preview.append(
+                f"📊 {kode} | Entry {entry} → {harga} ({persen:+.2f}%) [{status}]\n🗒️ {ket}"
+            )
         text = "\n\n".join(preview)
         await send_text(update, context, f"✅ Data sinyal terkini:\n\n{text}")
     else:
