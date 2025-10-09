@@ -25,13 +25,7 @@ WIGUNA_API_TOKEN = os.getenv("WIGUNA_API_TOKEN", "")
 
 
 def resolve_wiguna_token(force_refresh: bool = False) -> str:
-    """Return a valid Wiguna API token.
-
-    - Uses in-memory/env WIGUNA_API_TOKEN if available (and not forcing refresh).
-    - Otherwise, fetches a new token using WIGUNA_EMAIL and WIGUNA_PASSWORD envs
-      by calling the Wiguna Auth API, then updates both the module-level
-      WIGUNA_API_TOKEN and process env for subsequent calls.
-    """
+    """Return a valid Wiguna API token based on the simplified token response format."""
     global WIGUNA_API_TOKEN
 
     if WIGUNA_API_TOKEN and not force_refresh:
@@ -42,7 +36,6 @@ def resolve_wiguna_token(force_refresh: bool = False) -> str:
     if not email or not password:
         raise RuntimeError("WIGUNA_EMAIL dan/atau WIGUNA_PASSWORD belum diset di environment.")
 
-    # Prepare request to auth endpoint
     payload = json.dumps({"email": email, "password": password}).encode("utf-8")
     req = urllib.request.Request(
         WIGUNA_AUTH_URL,
@@ -59,13 +52,8 @@ def resolve_wiguna_token(force_refresh: bool = False) -> str:
             except Exception:
                 data = {}
 
-            # Try common fields for token
-            token = (
-                (data.get("data") or {}).get("token")
-                if isinstance(data.get("data"), dict)
-                else None
-            ) or data.get("token") or data.get("access_token") or data.get("jwt")
-
+            # Expected simple response: {"token": "xxx"}
+            token = data.get("token")
             if not token:
                 # As a fallback, if body is a plain string token
                 if isinstance(data, str) and data.strip():
@@ -73,10 +61,10 @@ def resolve_wiguna_token(force_refresh: bool = False) -> str:
                 else:
                     raise RuntimeError(f"Tidak bisa mendapatkan token dari response auth: {body[:400]}")
 
-            # Cache in memory and environment
             WIGUNA_API_TOKEN = token
             os.environ["WIGUNA_API_TOKEN"] = token
             return token
+
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8", errors="ignore") if hasattr(e, "read") else str(e)
         raise RuntimeError(f"Auth gagal (HTTP {e.code}): {err_body[:400]}")
@@ -200,7 +188,7 @@ async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 resp_body = resp.read().decode("utf-8", errors="ignore")
                 return resp.status, resp_body
         except urllib.error.HTTPError as e:
@@ -245,7 +233,7 @@ async def get_exp2_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
             method="GET",
         )
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 body = resp.read().decode("utf-8", errors="ignore")
                 return resp.status, body
         except urllib.error.HTTPError as e:
