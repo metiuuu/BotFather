@@ -199,6 +199,72 @@ async def set_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"❌ Gagal kirim sinyal (status: {status}).\nBody/Err: {body[:400]}"
         )
 
+
+# ==================== GET SIGNAL DATA ====================
+@safe_handler
+async def get_signal_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Ambil data sinyal terakhir dari API Wiguna (opsional filter kode).
+    Contoh:
+    - /gs
+    - /gs PSDN
+    """
+    await maybe_delete_command(update)
+
+    try:
+        token = await asyncio.to_thread(resolve_wiguna_token)
+    except Exception as e:
+        await send_text(update, context, f"❌ Gagal mendapatkan token Wiguna: {e}")
+        return
+
+    code_filter = context.args[0].upper() if context.args else None
+    url = WIGUNA_API_URL
+    if code_filter:
+        url += f"?code={code_filter}"
+
+    def _get():
+        req = urllib.request.Request(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                body = resp.read().decode("utf-8", errors="ignore")
+                return resp.status, body
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="ignore") if hasattr(e, "read") else str(e)
+            return e.code, body
+        except urllib.error.URLError as e:
+            return None, str(e)
+
+    status, body = await asyncio.to_thread(_get)
+
+    if not status or status >= 300:
+        await send_text(update, context, f"❌ Gagal ambil data sinyal (status: {status}).\n{body[:400]}")
+        return
+
+    try:
+        data = json.loads(body)
+    except Exception:
+        await send_text(update, context, f"❌ Format respons tidak valid:\n{body[:400]}")
+        return
+
+    if isinstance(data, list) and len(data) > 0:
+        preview = []
+        for item in data[:5]:  # limit 5 results
+            code = item.get("code")
+            entry = item.get("entry")
+            tanggal = item.get("tanggal")
+            ket = item.get("keterangan") or "-"
+            preview.append(f"📊 {code} | {entry} | {tanggal}\n🗒️ {ket}")
+        text = "\n\n".join(preview)
+        await send_text(update, context, f"✅ Data sinyal terkini:\n\n{text}")
+    else:
+        await send_text(update, context, "ℹ️ Tidak ada data sinyal ditemukan.")
+
 @safe_handler
 async def get_exp2_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Ambil data dari endpoint exp2 Wiguna berdasarkan tanggal hari ini (weekday date)."""
@@ -256,6 +322,9 @@ Signal
 - /ss KODE ENTRY [KETERANGAN]
 Contoh: /ss PSDN 4500 Bullish trend
 
+- /gs [KODE]
+Ambil data sinyal terakhir dari API Wiguna (opsional filter kode).
+
 Data Exp2
 - /exp2
 Ambil data ekspor saham (exp2) berdasarkan tanggal hari ini (weekday date).
@@ -271,6 +340,9 @@ def main():
 
     # WIGUNA SIGNAL (mobile-friendly)
     app.add_handler(CommandHandler("ss", set_signal))
+
+    # WIGUNA SIGNAL FETCH
+    app.add_handler(CommandHandler("gs", get_signal_data))
 
     # EXP2 DATA
     app.add_handler(CommandHandler("exp2", get_exp2_data))
