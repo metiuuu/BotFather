@@ -255,7 +255,7 @@ async def get_signal_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     signal_list = data.get("list") if isinstance(data, dict) else None
     if isinstance(signal_list, list) and len(signal_list) > 0:
         preview = []
-        for item in signal_list[:5]:
+        for item in signal_list:
             kode = item.get("kode")
             entry = item.get("entry")
             harga = item.get("harga")
