@@ -21,15 +21,9 @@ JAKARTA_TZ = pytz.timezone("Asia/Jakarta")
 # =============== Wiguna API Config ===============
 WIGUNA_API_URL = os.getenv("WIGUNA_API_URL", "https://api.wigunainvestment.com/recommendation/stockpick")
 WIGUNA_AUTH_URL = os.getenv("WIGUNA_AUTH_URL", "https://api.wigunainvestment.com/auth/token")
-WIGUNA_API_TOKEN = os.getenv("WIGUNA_API_TOKEN", "")
 
 
-def resolve_wiguna_token(force_refresh: bool = False) -> str:
-    """Return a valid Wiguna API token based on the simplified token response format."""
-    global WIGUNA_API_TOKEN
-
-    if WIGUNA_API_TOKEN and not force_refresh:
-        return WIGUNA_API_TOKEN
+def resolve_wiguna_token() -> str:
 
     email = os.getenv("WIGUNA_EMAIL")
     password = os.getenv("WIGUNA_PASSWORD")
@@ -60,9 +54,6 @@ def resolve_wiguna_token(force_refresh: bool = False) -> str:
                     token = data.strip()
                 else:
                     raise RuntimeError(f"Tidak bisa mendapatkan token dari response auth: {body[:400]}")
-
-            WIGUNA_API_TOKEN = token
-            os.environ["WIGUNA_API_TOKEN"] = token
             return token
 
     except urllib.error.HTTPError as e:
